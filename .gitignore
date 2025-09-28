@@ -1,0 +1,8 @@
+__pycache__/
+results/
+logs/
+slurm/
+*.bin
+*.txt
+*.sh
+

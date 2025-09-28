@@ -1,0 +1,38 @@
+data:
+  name: 'LibriSpeech'
+  path: '/disk/scratch/s2522924/LibriSpeech' # path to LibriSpeech
+  # split: ['train-clean-100', 'train-clean-360', 'train-other-500']
+  train_split: ['train-clean-100']
+  dev_split: ['dev-clean']
+
+model:
+  name: 'ssl'
+  no_load: true
+  apply_mask: false
+  mask_prob: 0.5
+  mask_channel_prob: 0.5
+  mask_channel_length: 64
+  layerdrop: 0.0
+  activation_dropout: 0.0
+  feature_grad_mult: 0.0
+  freeze_finetune_updates: 0
+
+hparas:
+    fp16: true
+    optimizer: 'Adam'
+    lr: 0.0001
+    momentum: 0.0 # for SGD
+    weight_decay: 0
+    lr_schedule: True
+    grad_clip: 5
+    # epoch/step
+    epoch: -1
+    total_steps: 200000
+    save_step: -1
+    save_epoch: 10
+    plot_step: 100
+    eval_step: 1000
+    # dataloader
+    batch_size: 16
+    gradient_accumulate_steps: 1
+    num_workers: 8
