@@ -15,7 +15,6 @@ from model.ssl.wrapper import Wrapper
 from dictionary import Dictionary
 from dataset import WavDataset
 from decoder import GreedyCTCDecoder, BeamSearchCTCDecoder
-import jiwer
 import editdistance
 
 DEVICE = 'cuda:0' if torch.cuda.is_available() else 'cpu'
@@ -73,8 +72,6 @@ for i, batch in enumerate(tqdm(dev_loader, dynamic_ncols=True, desc='test')):
     
     with torch.no_grad():
         logits, feat_lengths = model(feats, tgt_layer=tgt_layer)
-        # log_probs = nn.functional.log_softmax(logits, dim=-1)
-        # hyp_batch, ref_batch = decoder.decode(log_probs.float().contiguous().cpu(), feat_lengths, labels, label_lengths)
         hyp_batch, ref_batch = decoder.decode(logits.float().contiguous().cpu(), feat_lengths, labels, label_lengths)
 
     hypotheses.extend(hyp_batch)
@@ -88,8 +85,6 @@ for i, (name, hyp, ref) in enumerate(zip(files, hypotheses, references)):
     if i == 5:
         break
 
-# wer = jiwer.wer(references, hypotheses)
-# cer = jiwer.cer(references, hypotheses)
 wer = WER(references, hypotheses)
 cer = CER(references, hypotheses)
 print(f"WER: {wer * 100:.2f}")
