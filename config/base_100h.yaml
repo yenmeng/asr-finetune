@@ -11,7 +11,7 @@ model:
   mask_prob: 0.5
   mask_channel_prob: 0.5
   mask_channel_length: 64
-  layerdrop: 0.0
+  layerdrop: 0.05
   activation_dropout: 0.1
   feature_grad_mult: 0.0
   freeze_finetune_updates: 10000
@@ -26,7 +26,7 @@ hparas:
     grad_clip: 5
     # epoch/step
     epoch: -1
-    total_steps: 150000
+    total_steps: 80000
     save_step: -1
     save_epoch: 10
     plot_step: 100

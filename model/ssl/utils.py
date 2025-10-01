@@ -37,10 +37,10 @@ def load_wavlm_ckpt(ckpt_path, no_load=False):
 
     return model, cfg
 
-def load_and_convert_fairseq_ckpt(fairseq_source: str, output_path: str = None, model_type: str = 'hubert'):
+def load_and_convert_fairseq_ckpt(fairseq_source: str, output_path: str = None, model_type: str = 'hubert', arg_overrides = None):
     from fairseq.data.dictionary import Dictionary
 
-    state, cfg = load_fairseq_ckpt(fairseq_source)
+    state, cfg = load_fairseq_ckpt(fairseq_source, arg_overrides)
 
     if model_type == 'hubert':
         dicts: List[Dictionary] = state["task_state"]["dictionaries"]
@@ -95,7 +95,7 @@ def load_converted_model(ckpt_path, ckpt_state, model_type: str = 'hubert', no_l
 
     return model, task_cfg
 
-def load_fairseq_ckpt(source: str, **override):
+def load_fairseq_ckpt(source: str, override=None):
     from fairseq.checkpoint_utils import load_checkpoint_to_cpu
     from omegaconf import OmegaConf
 

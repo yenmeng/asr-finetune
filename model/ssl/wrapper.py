@@ -34,19 +34,32 @@ class Wrapper(nn.Module):
             ckpt_state = torch.load(ckpt, map_location='cpu')
             model, task_cfg = load_wavlm_ckpt(ckpt, no_load=no_load)
         else:
-            ckpt_state = load_and_convert_fairseq_ckpt(ckpt,  model_type=self.model_type)
+            arg_overrides = {
+                "activation_dropout": train_config["activation_dropout"],
+                "feature_grad_mult" : train_config['feature_grad_mult'],
+                "encoder_layerdrop": train_config["layerdrop"],
+                "mask_prob": train_config["mask_prob"],
+                "mask_channel_length": train_config["mask_channel_length"],
+                "mask_channel_prob": train_config["mask_channel_prob"],
+            }
+            ckpt_state = load_and_convert_fairseq_ckpt(ckpt,  model_type=self.model_type, arg_overrides=arg_overrides)
             model, task_cfg = load_converted_model(ckpt, ckpt_state, model_type=self.model_type, no_load=no_load)
-        
+        self.config = train_config
         self.encoder = model
         self.task_cfg = task_cfg
         self.model_cfg = ckpt_state['model_cfg'] if ckpt_state.get('model_cfg') else ckpt_state['cfg']
 
-        self.encoder.feature_grad_mult = train_config['feature_grad_mult']
-        self.encoder.encoder.layerdrop = train_config['layerdrop']
-        self.encoder.mask_prob = train_config['mask_prob']
-        self.encoder.mask_channel_prob = train_config['mask_channel_prob']
-        self.encoder.mask_channel_length = train_config['mask_channel_length']
+        # self.encoder.feature_grad_mult = train_config['feature_grad_mult']
+        # self.encoder.mask_prob = train_config['mask_prob']
+        # self.encoder.mask_channel_prob = train_config['mask_channel_prob']
+        # self.encoder.mask_channel_length = train_config['mask_channel_length']
+        # self.encoder.encoder.layerdrop = train_config['layerdrop']
         self.freeze_finetune_updates = train_config['freeze_finetune_updates']
+        self.freeze_layers = train_config.get('freeze_layers', 0)
+
+        if self.freeze_layers > 0:
+            for i in range(self.freeze_layers):
+                model.encoder.layers[i].requires_grad_(False)
         
         self.proj = nn.Linear(self.model_cfg['encoder_embed_dim'], output_dim, bias=True)
 

@@ -3153,8 +3153,9 @@ class TransformerEncoder(nn.Module):
         x = x.transpose(0, 1)
 
         layer_results = []
-        r = None
-        eeb = np.random.choice(6, 1)[0] + 6
+        r = None 
+        # if self.training:
+        #     tgt_layer = np.random.choice(np.arange(7)) + 5
         for i, layer in enumerate(self.layers):
             dropout_probability = np.random.random() if self.layerdrop > 0 else 1
             if not self.training or (dropout_probability > self.layerdrop):
@@ -3164,9 +3165,6 @@ class TransformerEncoder(nn.Module):
                 if i >= min_layer:
                     layer_results.append((x, z, lr))
             if i == tgt_layer:
-                r = x
-                break
-            if self.training and i == eeb:
                 r = x
                 break
 
@@ -3188,7 +3186,6 @@ class TransformerEncoder(nn.Module):
                 )
 
             layer_results = [undo_pad(*u) for u in layer_results]
-
         return x, layer_results
 
     def max_positions(self):
