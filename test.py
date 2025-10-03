@@ -39,7 +39,7 @@ def CER(hyp, ref):
     return error / total_length
 
 dictionary = Dictionary.load('./dict.ltr.txt')
-dev_set = WavDataset(split=['dev-clean'], dictionary=dictionary, device=DEVICE)
+dev_set = WavDataset(split=['test-clean_0db-m'], dictionary=dictionary, device=DEVICE)
 dev_loader = DataLoader(dev_set, 
                             batch_size=1, 
                             collate_fn=dev_set.collate_fn, 

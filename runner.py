@@ -15,6 +15,13 @@ import jiwer
 from torch.nn.utils.rnn import pad_sequence
 from lr_schedule.cosine_lr_schedule import get_cosine_schedule_with_warmup
 from lr_schedule.tri_stage_lr_schedule import TriStageLRScheduler
+import logging
+logging.basicConfig(
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    level=logging.INFO,
+)
+logger = logging.getLogger(__name__)
 
 class Runner():
     def __init__(self, config, paras, device):
@@ -57,13 +64,14 @@ class Runner():
         
         # aug
         self.apply_mask = self.model_config.get('apply_mask', False)
+        self.data_aug = self.data_config.get('data_aug', False)
 
         # set dictionary
         self.dictionary = Dictionary.load('./dict.ltr.txt')
         self.blank = self.dictionary.bos()
 
         # load data
-        self.verbose('loading data...')
+        logger.info('loading data...')
         self.train_loader, self.dev_loader = self.load_data()
         
         self.best_score = float('inf')
@@ -75,7 +83,7 @@ class Runner():
         assert self.init_ckpt is not None
         init_weight = self.init_ckpt.get(name)
         model.load_state_dict(init_weight)
-        self.verbose(f'Resume training: loading {name} weights from {self.paras.resume_ckpt}')
+        logger.info(f'Resume training: loading {name} weights from {self.paras.resume_ckpt}')
         return model
     
     def init_weight(self):
@@ -100,7 +108,7 @@ class Runner():
             "epoch": self.cur_epoch
         }
         torch.save(ckpt, ckpt_path)
-        self.verbose(f'saving checkpoint @ step {self.step}(epoch {self.cur_epoch})')
+        logger.info(f'saving checkpoint @ step {self.step}(epoch {self.cur_epoch})')
 
     def set_model(self):
         if self.model_name == 'ssl':
@@ -113,21 +121,21 @@ class Runner():
         self.model = Wrapper(ckpt=self.pretrained_path, train_config=self.model_config, output_dim=len(self.dictionary.symbols))
         self.model = self.model.to(self.device) 
         total_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
-        self.verbose(f"total parameters: {total_params}")
-        self.verbose(f"model:\n{self.model}")
+        logger.info(f"total parameters: {total_params}")
+        logger.info(f"model:\n{self.model}")
 
     def training_setup(self):
         # set training steps
         n_epochs = self.hparas_config['epoch']
         if n_epochs > 0: 
             self.total_steps = int(n_epochs * len(self.train_loader) / self.gradient_accumulate_steps)
-            self.verbose(f'Training for {n_epochs} epochs, which is equivalent to {self.total_steps} steps')
+            logger.info(f'Training for {n_epochs} epochs, which is equivalent to {self.total_steps} steps')
         else:
             self.total_steps = self.hparas_config['total_steps']
             n_epochs = int(self.total_steps * self.gradient_accumulate_steps / len(self.train_loader))
-            self.verbose(f'Training for {self.total_steps} steps, which is approximately {n_epochs} epochs')
+            logger.info(f'Training for {self.total_steps} steps, which is approximately {n_epochs} epochs')
         self.steps_per_epoch = len(self.train_loader)// self.gradient_accumulate_steps
-        self.verbose(f'Steps per epoch: {self.steps_per_epoch} steps')
+        logger.info(f'Steps per epoch: {self.steps_per_epoch} steps')
 
         self.criterion = nn.CTCLoss(
             blank=self.blank, zero_infinity=True
@@ -166,7 +174,7 @@ class Runner():
         return train_loader, dev_loader
 
     def _get_train_loader(self):
-        train_set = WavDataset(split=self.data_config['train_split'], dictionary=self.dictionary, device=self.device)
+        train_set = WavDataset(split=self.data_config['train_split'], dictionary=self.dictionary, device=self.device, augment=self.data_aug)
         train_loader = DataLoader(train_set, 
                                   batch_size=self.batch_size, 
                                   collate_fn=train_set.collate_fn, 
@@ -176,7 +184,7 @@ class Runner():
         return train_loader
 
     def _get_dev_loader(self):
-        dev_set = WavDataset(split=self.data_config['dev_split'],dictionary=self.dictionary, device=self.device)
+        dev_set = WavDataset(split=self.data_config['dev_split'],dictionary=self.dictionary, device=self.device, augment=False)
         dev_loader = DataLoader(dev_set, 
                                   batch_size=1,
                                   collate_fn=dev_set.collate_fn, 
@@ -219,7 +227,7 @@ class Runner():
         self.training_setup()
                 
         if self.fp16:
-            self.verbose('enable fp16 training')
+            logger.info('enable fp16 training')
             scaler = torch.amp.GradScaler('cuda')
 
         pbar = tqdm(total=self.total_steps, dynamic_ncols=True, desc='overall')
@@ -338,7 +346,7 @@ class Runner():
                     
                     if self.cur_epoch > 0:
                         epoch_loss = sum(epoch_loss) / len(epoch_loss)
-                        self.verbose(f"avg loss @ epoch {self.cur_epoch}: {epoch_loss}")
+                        logger.info(f"avg loss @ epoch {self.cur_epoch}: {epoch_loss}")
                         epoch_loss = []
 
                     if self.cur_epoch > 0 and self.cur_epoch % self.save_every_epoch == 0:

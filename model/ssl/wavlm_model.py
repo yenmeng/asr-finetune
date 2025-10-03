@@ -424,7 +424,7 @@ class WavLM(nn.Module):
         #     feature = (feature, res["layer_results"])
         # return feature, res["padding_mask"]
 
-        x, _ = self.encoder(
+        out, _ = self.encoder(
             x,
             padding_mask=padding_mask,
             layer=None if output_layer is None else output_layer - 1,

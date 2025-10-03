@@ -4,6 +4,7 @@ data:
   # split: ['train-clean-100', 'train-clean-360', 'train-other-500']
   train_split: ['train-clean-100']
   dev_split: ['dev-clean']
+  data_aug: true
 
 model:
   name: 'ssl'

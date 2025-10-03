@@ -6,6 +6,13 @@ import argparse
 import shutil
 import torch
 from runner import Runner
+import logging
+logging.basicConfig(
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    level=logging.INFO,
+)
+logger = logging.getLogger(__name__)
 
 def same_seeds(seed):
     torch.manual_seed(seed)
@@ -29,18 +36,20 @@ def get_args():
 
     return parser.parse_args()
 
-DEVICE = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-print(f'DEVICE: {DEVICE}')
+if __name__ == '__main__':
+    DEVICE = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+    
+    logger.info(f'DEVICE: {DEVICE}')
 
-paras = get_args()
-same_seeds(paras.seed)
-config = yaml.load(open(paras.config, 'r'), Loader=yaml.FullLoader)
-os.makedirs(os.path.join(paras.log_dir, paras.run_name), exist_ok=True)
+    paras = get_args()
+    same_seeds(paras.seed)
+    config = yaml.load(open(paras.config, 'r'), Loader=yaml.FullLoader)
+    os.makedirs(os.path.join(paras.log_dir, paras.run_name), exist_ok=True)
 
-try:
-    shutil.copyfile(paras.config, os.path.join(paras.log_dir, paras.run_name, 'config.yaml'))
-except shutil.SameFileError:
-    pass
+    try:
+        shutil.copyfile(paras.config, os.path.join(paras.log_dir, paras.run_name, 'config.yaml'))
+    except shutil.SameFileError:
+        pass
 
-runner = Runner(config, paras, device=DEVICE)
-runner.exec() 
+    runner = Runner(config, paras, device=DEVICE)
+    runner.exec() 
